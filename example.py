@@ -25,6 +25,7 @@ def dump_scrape(feed: Dict):
 # note that we could also pass in some sort of dictionary "store" for locally storing metrics, see google doc
 # TODO: why don't we just pass the trigger object?
 def grab_matrix_feed(trigger_name: str, trigger_input):
+    """The primary action for this agent."""
     logging.info("I got called via %s trigger!" % trigger_name)
     logging.info("Trigger input: %s" % trigger_input)
 

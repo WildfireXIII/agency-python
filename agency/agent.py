@@ -40,6 +40,8 @@ class Agent:
             # TODO: Store organized metrics about the action runtime, output success/failure
         return wrapped_f
 
+    # TODO: for determining "liveness" of an agent, we could store process ID and use OS calls to see if that ID is running? (for singleton agents) Blasdlfsd;lfkjasdf there needs to be a way to allow communication from CLI to a running agent without necessarily starting up a _new_ agent. Unsure best way to handle this, but I'm again tempted to offload the complexity into the communications aspect of the protocol.
+
 
     def deploy(self):
         # TODO: yeah this clearly doesn't work if activate is blocking...
