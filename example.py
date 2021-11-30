@@ -14,6 +14,7 @@ DEBUG_SCRAPE = "./cache/scrape"  # prefix for raw feed scrape
 
 
 def dump_scrape(feed: Dict):
+    """Simple util function to keep a copy of the results for every scrape."""
     now = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
     scrape_name = f"{DEBUG_SCRAPE}_{now}.json"
 
@@ -24,6 +25,7 @@ def dump_scrape(feed: Dict):
 # [A] if we did this all OOP like, this function could be called with the action object for additional info...how translateable is that between languages though?
 # note that we could also pass in some sort of dictionary "store" for locally storing metrics, see google doc
 # TODO: why don't we just pass the trigger object?
+# My vote is that we keep a defined set of _string_ things that get passed in, because that can be language agnostic a lot easier.
 def grab_matrix_feed(trigger_name: str, trigger_input):
     """The primary action for this agent."""
     logging.info("I got called via %s trigger!" % trigger_name)
@@ -75,6 +77,7 @@ def grab_matrix_feed(trigger_name: str, trigger_input):
     # TODO - what do we actually return to "make this a trigger" or to communicate with other agents?
     return new_entries
 
+# do the agent-y things!
 
 # TODO: how do we handle configuration? Per agent? Is each agent given some sort of json config?
 agency.init("matrix_blog_scraper")
