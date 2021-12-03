@@ -1,4 +1,3 @@
-"""Module stuffs."""
 
-from agency.agent import init, register_action, register_trigger, cli_deploy
-import agency.trigger
+from agency.channel import ChannelParams, Channel
+from agency.agent import init, define_channel, tx, rx

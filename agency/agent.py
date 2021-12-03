@@ -1,86 +1,107 @@
-"""Module for handling agent wrapper code."""
+import argparse
+from typing import List
 
-import logging
-import sys
+from agency.channel import Channel, ChannelParams, ChannelList
 
-from agency.trigger import Trigger
+# NOTE: making the decision now - logging does not have to be interoperable (just has to be text based), **metrics do**
 
-ACTIVE_AGENT = None
+# required default channels:
+# - log (tx)
+# - metrics (tx)
+# - agent info (tx) NO. this is a stream, not a channel?
+# - meta command (rx)
+# - channel list (tx) NO. This is a stream not a channel?
+# - request (rx)
+# - query (rx/tx)
+
+# - broadcast "callsign" :D (tx) - no this probably needs to be handled some other way  (like having a central registration agent that when you spawn each new agent it auto creates a connection to or something)
+
+# - memory? (rx/tx) god no
+# - config? (rx) NO. yes?
+
+
+def set_default_channels(agent):
+    # NOTE: an unlisted channel means it's ephemeral/only lives for a single agent "spawn" session. Ideal for CLI channel.
+    #agent.define_channel(stream="command", medium="CLI", unlisted=True)
+    #agent.define_channel(stream="query", medium="CLI")
+
+    # TODO: define a **connection** that is CLI to CLI
+
+
+    ai_tx = Channel(local=ChannelParams(stream="agent-info", direction="tx"))
+    m_tx = Channel(local=ChannelParams(stream="metrics", direction="tx", medium="cli"))
+    cl_tx = Channel(local=ChannelParams(stream="channel-list", direction="tx"))
+
+    agent.define_channel(ai_tx)
+    agent.define_channel(m_tx)
+    agent.define_channel(cl_tx)
+    
+    
+    # connect all CLI outputs???? to active commandline
+    #all_cli = Channel(common=ChannelParams(medium="cli"))
+    # TODO: assume channel definitions are _not_ reversed when calling connect. Everything is from perspective of active agent.
+    ai_rx = Channel(common=ChannelParams(medium="cli"), local=ChannelParams(stream="agent-info"), target=ChannelParams(direction="rx"), temporary=True)
+    # NOTE: the target above should be implicit??
+    m_rx = Channel(common=ChannelParams(medium="cli"), local=ChannelParams(stream="metrics"), temporary=True)
+    all_rx = Channel(common=ChannelParams(medium="cli"), temporary=True) # NOTE: this is probably an issue because....I don't know
+    
+    agent.connect(ai_rx)
+    agent.connect(m_rx)
+    agent.connect(all_rx)
+    
+
+# class: instance? (this could handle memory/config stuff)
+
+AGENT = None
 
 
 class Agent:
-    def __init__(self, name):
-        self.actions = {}
-        self.triggers = []
-        self.name = name
-
-        logging.info("Initializing agent '%s'" % self.name)
-
-    def register_action(self, f, action_name: str):
-        self.actions[action_name] = self.wrap_action(f, action_name)
-
-    def register_trigger(self, trigger: Trigger, action_name: str):
-        if action_name not in self.actions.keys():
-            raise Exception(f"The action name {action_name} hasn't been registered for this agent.")
-        trigger.action_f = self.actions[action_name]
-        self.triggers.append(trigger)
+    def __init__(self):
+        self.channel_list: ChannelList = ChannelList()
 
 
-    def wrap_action(self, f, action_name: str):
-        """Sort of like a decorator but not really. This is how we're handling all of the meta
-        stuff for the actions. Not using a decorator for now because I prefer how the example looks
-        as is, and I think using decorators might break with some of this being class-based."""
-        def wrapped_f(trigger_name, trigger_input):
-            logging.info("TRIGGER - Agent: %s, Action: %s, Trigger: %s" % (self.name, action_name, trigger_name))
-            # TODO: Log the environment info!
-            # TODO: Log all of the things!
-            # TODO: Store organized metrics about trigger type and time
-            return f(trigger_name, trigger_input)
-            # TODO: Log the end of the action!
-            # TODO: Store organized metrics about the action runtime, output success/failure
-        return wrapped_f
+    def determine_runmode(self):
+        """Figure out based on the channellist whether we need to be running a server, a timer, or just a cli."""
+        pass
 
-    # TODO: for determining "liveness" of an agent, we could store process ID and use OS calls to see if that ID is running? (for singleton agents) Blasdlfsd;lfkjasdf there needs to be a way to allow communication from CLI to a running agent without necessarily starting up a _new_ agent. Unsure best way to handle this, but I'm again tempted to offload the complexity into the communications aspect of the protocol.
-
-
-    def deploy(self):
-        # TODO: yeah this clearly doesn't work if activate is blocking...
-        # TODO: each trigger is going to have to run in own thread. (For once this would actually
-        #   an okay use for default python multithreading since performance isn't likely going to
-        #   be the issue here.
-        for trigger in self.triggers:
-            trigger.activate()
-
-
-def global_agent_check():
-    if ACTIVE_AGENT is None:
-        raise Exception("Global agent is not active. Try calling agency.init()")
-
-
-def register_action(f, action_name: str):
-    global_agent_check()
     
-    logging.info("Registering action '%s' with global agent..." % action_name)
-    ACTIVE_AGENT.register_action(f, action_name)
-
-
-def register_trigger(trigger: Trigger, action_name: str):
-    global_agent_check()
+    def query(self, message):
+        pass
     
-    logging.info("Registering trigger of type '%s' for action '%s' with global agent..." % (trigger.typename, action_name))
-    ACTIVE_AGENT.register_trigger(trigger, action_name)
+
+    def meta_command(self, message):
+        """Handle CLI default meta commands."""
+        pass
 
 
-def cli_deploy():
-    global_agent_check()
-    logging.info("Deploying global agent...")
-    ACTIVE_AGENT.deploy()
-    # TODO: Inject CLI argparse stuff for statusy things
+    def define_channel(self, channel: Channel):
+        self.channel_list.add_channel(channel)
+        pass
+
+    def connect(self, channel: Channel):
+        # RESOLVE.
+        self.channel_list.connect(channel)
 
 
-def init(agent_name):
-    global ACTIVE_AGENT
-    logging.basicConfig(format='%(asctime)s [%(levelname)s] %(filename)s:%(lineno)d - %(message)s', level=logging.DEBUG, stream=sys.stdout)
-    logging.info("Global agent activation requested")
-    ACTIVE_AGENT = Agent(agent_name)
-    # TODO: init logging
+def init(agent_info):
+    global AGENT
+    AGENT = Agent()
+    
+    #parser = argparse.ArgumentParser()
+    set_default_channels(AGENT) # TODO:  er....so this needs to go in RX, not in init
+
+
+def define_channel(channel: Channel):
+    AGENT.define_channel(channel)
+
+
+def tx():
+    pass
+
+
+def rx(action_f):
+    """The 'deploy' command, this sets the _default_ action function, and establishes the default channels."""
+    
+    # TODO: 
+    pass
+
