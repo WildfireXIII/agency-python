@@ -11,6 +11,7 @@ class ChannelParams:
     stream: str = None
     encoding: str = None
     medium: str = None
+    activity: str = None
     schedule: str = None
     name: str = None
     endpoint: str = None
@@ -18,6 +19,7 @@ class ChannelParams:
     def fits(self, obj):
         """This determines "compatability" between the given channels."""
         # TODO: surely there's a way to do this with _get_attr
+        # TODO: write unit tests for this
         if (
             self.direction is not None
             and obj.direction is not None
@@ -40,6 +42,12 @@ class ChannelParams:
             self.medium is not None
             and obj.medium is not None
             and self.medium != obj.medium
+        ):
+            return False
+        if (
+            self.activity is not None
+            and obj.activity is not None
+            and self.activity != obj.activity
         ):
             return False
         if (
@@ -103,9 +111,11 @@ class Channel:
 # NOTE: so actually using a connection requires at a minimum: the medium.
 
 # TODO: still not seeing how to define a connection as being broadcast/rx-only or bidirectional? Sometimes we really only need one endpoint.
-class Connection:
-    def __init__(self, local: ChannelParams = None, target: ChannelParams = None):
+class CommLink:
+    def __init__(self, rx_function, local: ChannelParams = None, target: ChannelParams = None):
         pass
+
+    
 
 
 class ChannelList:
