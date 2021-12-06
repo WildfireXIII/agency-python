@@ -1,0 +1,7 @@
+TODO: [A] make actual automatic configuration of comm mechanisms
+
+TODO: [B] determine how to allow multiple channels to RX without interfering
+
+TODO: make commlink keep track of both channel ends where applicable
+TODO: figure out how unidirectional channels are handled programmatically
+

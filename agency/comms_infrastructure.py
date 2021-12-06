@@ -1,8 +1,10 @@
 """This file handles the various communication _mechanisms_ available to the channels."""
 
+import logging
 import os
 
-from agency.channel import ChannelParams
+#from agency.channel import ChannelParams
+import agency
 
 # import agency.channel # NOTE: apparently this avoids circular dependency issues since it's blank on import? (as opposed to from ... import ...)
 # https://stackoverflow.com/questions/11698530/two-python-modules-require-each-others-contents-can-that-work
@@ -25,20 +27,40 @@ from agency.channel import ChannelParams
 class CommLink:
     """This is an established connection over a channel. This is where most of the logic for scheduling,
     message queuing etc. should take place."""
-    def __init__(self, rx_function, local: ChannelParams = None, target: ChannelParams = None):
+    def __init__(self, rx_function, local=None, target=None, local_channel=None):
+        """Not using type info because circular, but local and target are ChannelParam types."""
         self.local = local
         self.target = target
         self.rx_function = rx_function
+        self.local_channel = local_channel
 
-        self.rx_mechanism = None
-        self.tx_mechanism = None
+        self.rx_mechanism: CommMechanism = None
+        self.tx_mechanism: CommMechanism = None
+
+        self.establish_mechanisms()
 
         # TODO: ensure a medium is specified?
+
+    def establish_mechanisms(self):
+        tx_params = None
+        if self.local.direction == "tx":
+            tx_params = self.local
+
+        if tx_params is not None and tx_params.medium == "cli":
+            self.tx_mechanism = CLIMechanism()
+
+            
 
     def tx(self, msg):
         # TODO: similar 'establish' proc to rx? If we schedule an output, we have to handle the queuing and sending
         #   here, that's where the abstraction belongs.
-        pass
+
+        # testing only
+        name = 'unnamed'
+        if self.local_channel is not None:
+            name = self.local_channel.name
+        logging.debug("Commlink attempting to transmit message: '%s' (channel %s)" % (msg, name))
+        self.tx_mechanism.tx(msg)
 
     def rx(self):
         # this is where, based on local medium and activity, we either spin up a thread to spin wait or not?
@@ -46,7 +68,9 @@ class CommLink:
 
         if self.local.activity == "scheduled":
             # TODO: we know we need timer stuff.
+            pass
 
+        # TODO: on rx, call rx_function
         
         pass
 
@@ -60,8 +84,17 @@ class CommMechanism:
     def rx(self):
         pass
 
-    def tx(self):
+    def tx(self, content):
         pass
+
+
+class CLIMechanism(CommMechanism):
+    # TODO: this needs to be singleton
+    def __init__(self):
+        super().__init__()
+
+    def tx(self, content):
+        print(content) # derp :3
 
 
 class FileMechanism(CommMechanism):
@@ -92,6 +125,7 @@ class FileMechanism(CommMechanism):
                 self.target_file = os.path.join(self.path, self.default_filename)
             else:
                 # TODO: ensure path up till filename
+                pass
 
     def rx(self):
         # TODO: what if it's a binary file? We'll need to set based on encoding passed

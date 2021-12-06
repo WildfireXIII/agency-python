@@ -28,7 +28,7 @@ def process_feed(feed_str):
 # TODO: at some point messages themselves need to probably have meta data, so a message needs a "payload"
 #   which would be the actual rss dump itself.
 def rx(message, channel, instance_config):
-    print(f"Message received: {message} on channl {channel}")
+    print(f"Message received: {message} on channel {channel}")
     if channel.encoding == "rss":
         process_feed(message)
 
@@ -42,10 +42,11 @@ agency.define_channel(
     Channel(
         common=ChannelParams(stream="entries", encoding="json"),
         local=ChannelParams(direction="tx"),
+        name="Output Entries"
     )
 )
 agency.define_channel(
-    Channel(local=ChannelParams(direction="rx", stream="scrape", encoding="rss")),
+    Channel(local=ChannelParams(direction="rx", stream="scrape", encoding="rss", name="RSS input")),
     #action=rx, # TODO:  
 )
 

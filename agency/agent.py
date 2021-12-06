@@ -1,7 +1,10 @@
 import argparse
+import logging
 from typing import List
+import sys
 
 from agency.channel import Channel, ChannelParams, ChannelList
+from agency.comms_infrastructure import CommLink
 
 # NOTE: making the decision now - logging does not have to be interoperable (just has to be text based), **metrics do**
 
@@ -28,9 +31,9 @@ def set_default_channels(agent):
     # TODO: define a **connection** that is CLI to CLI
 
 
-    ai_tx = Channel(local=ChannelParams(stream="agent-info", direction="tx"))
-    m_tx = Channel(local=ChannelParams(stream="metrics", direction="tx", medium="cli"))
-    cl_tx = Channel(local=ChannelParams(stream="channel-list", direction="tx"))
+    ai_tx = Channel(local=ChannelParams(stream="agent-info", direction="tx"), name="AUTO-agent-info-output")
+    m_tx = Channel(local=ChannelParams(stream="metrics", direction="tx", medium="cli"), name="AUTO-metrics-output")
+    cl_tx = Channel(local=ChannelParams(stream="channel-list", direction="tx"), name="AUTO-channel-list-output")
 
     agent.define_channel(ai_tx)
     agent.define_channel(m_tx)
@@ -54,10 +57,13 @@ def set_default_channels(agent):
 
 AGENT = None
 
+# TODO: add ability to add in custom agent hooks inside your script code?
 
 class Agent:
     def __init__(self):
         self.channel_list: ChannelList = ChannelList()
+        self.commlinks: List[CommLink] = [] # TODO: might want to make this a class like channellist too for easy querying and storage.
+        self.default_rx = None
 
 
     def determine_runmode(self):
@@ -76,32 +82,51 @@ class Agent:
 
     def define_channel(self, channel: Channel):
         self.channel_list.add_channel(channel)
-        pass
 
     def connect(self, channel: Channel):
-        # RESOLVE.
-        self.channel_list.connect(channel)
+        new_commlinks = self.channel_list.connect(channel, self.default_rx)
+        self.commlinks.extend(new_commlinks)
+
+    def tx(self, msg, params: ChannelParams):
+        applicable = self.resolve_applicable_commlinks(params)
+        for commlink in applicable:
+            commlink.tx(msg)
+
+    def resolve_applicable_commlinks(self, params: ChannelParams) -> List[CommLink]:
+        logging.debug("Searching for applicable commlinks...")
+        applicable = []
+        for commlink in self.commlinks:
+            if commlink.local.direction == "tx" and commlink.local.fits(params):
+                applicable.append(commlink)
+
+        logging.debug("Found %s" % len(applicable))
+        return applicable
 
 
 def init(agent_info):
     global AGENT
+    logging.basicConfig(format='%(asctime)s [%(levelname)s] %(filename)s:%(lineno)d - %(message)s', level=logging.DEBUG, stream=sys.stdout)
+    logging.info("Global agent activation requested")
     AGENT = Agent()
     
     #parser = argparse.ArgumentParser()
-    set_default_channels(AGENT) # TODO:  er....so this needs to go in RX, not in init
 
 
 def define_channel(channel: Channel):
     AGENT.define_channel(channel)
 
 
-def tx():
-    pass
+def tx(msg, **kwargs):
+    logging.debug("Transmitting message '%s'" % msg)
+    params = ChannelParams(**kwargs)
+    AGENT.tx(msg, params)
 
 
 def rx(action_f):
     """The 'deploy' command, this sets the _default_ action function, and establishes the default channels."""
     
-    # TODO: 
-    pass
+    AGENT.default_rx = action_f
+    set_default_channels(AGENT) 
+    #tx("THIS IS A TEST", medium="cli")
+    tx("THIS IS A TEST", medium="cli", stream="agent-info")
 
