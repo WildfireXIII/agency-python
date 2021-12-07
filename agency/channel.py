@@ -112,6 +112,7 @@ class Channel:
         elif self.target is not None and channel.target is not None:
             resolved_target = self.target.resolve(channel.target)
 
+        # TODO: if local or target is none, don't we want to init one with stuf from common? Unclear if that's desired functionality or not
         # resolve local and target with common if applicable
         if resolved_common is not None and resolved_local is not None:
             resolved_local = resolved_local.resolve(resolved_common)
@@ -141,15 +142,9 @@ class ChannelList:
     def connect(self, channel: Channel, rx_function) -> List[CommLink]:
         established = []
         
-        print("#################### Attempting new connection #####################")
         for local_channel in self.channels:
-            print("Comparing connecting channel")
-            print(channel)
-            print("with self:")
-            print(local_channel)
             
             if local_channel.fits(channel):
-                print("#### It fits!!!\n\n")
                 # TODO: do we just assume (and eventually check/throw exceptions) for non-conflicting params in common/local/target?
                 # resolve to two ChannelParams instances
                 #local = channel.local
@@ -158,7 +153,8 @@ class ChannelList:
                 print(f"RESOLVED:\nlocal:{local}\ntarget:{target}\n\n\n")
                 established.append(CommLink(rx_function, local, target, local_channel=local_channel))
             else:
-                print("nope :(\n\n")
+                #print("nope :(\n\n")
+                pass
             
             # if (
             #     (local_channel.common is not None and channel.common is not None and local_channel.common.fits(channel.common))

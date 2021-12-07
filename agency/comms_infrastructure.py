@@ -2,6 +2,7 @@
 
 import logging
 import os
+from typing import List
 
 #from agency.channel import ChannelParams
 import agency
@@ -18,6 +19,57 @@ import agency
 # TODO: CommLinks can't block, but they need to have some "stay-alive-necessary" mechanism so that the main runnable doesn't exit while they are still active.
 
 
+class CommLinkList:
+    """A collection of active commlinks. This allows overarching management and global tx/rx to and from 
+    all applicable commlinks in an intelligent (singleton-based where necessary) way. THIS is the rEaL function
+    that handles scheduling and threading and keepalive etc."""
+    
+    def __init__(self):
+        self.commlinks: List[CommLink] = []
+
+        self.cli_in = []
+        self.cli_out = []
+
+    def add_commlink(self, commlink: CommLink):
+        self.commlinks.append(commlink)
+        commlink_id = len(self.commlinks)
+        if type(commlink.rx_mechanism) == CLIMechanism:
+            self.cli_in.append(commlink_id)
+        if type(commlink.tx_mechanism) == CLIMechanism:
+            self.cli_out.append(commlink_id)
+
+    def establish_mechanism():
+        pass
+
+    def tx(self, msg, params):
+        ids, links = self.filter_tx_commlinks(params)
+
+        for index in ids:
+            if index in self.cli_out:
+                # TODO: 
+                pass
+                
+    
+    
+
+    def filter_tx_commlinks(self, params):
+        """For a given set of channelparams, find all applicable commmlinks that can be used to transmit the message."""
+        logging.debug("Searching for available tx commlinks...")
+        applicable_ids = []
+        applicable = []
+        for i, commlink in enumerate(self.commlinks):
+            if commlink.local.direction != "rx" and commlink.local.fits(params):
+                applicable_ids.append(i)
+                applicable.append(commlink)
+                
+        logging.debug("Found %s" % len(applicable))
+        return applicable_ids, applicable
+
+        # NO NO NO. the establish makes sense in individual commlink, don't duplicate logic here. Determine what's needed
+        # based on the actual mechanisms.
+        #if commlink.local.medium == "cli":
+            #self.cli_listen.append(commlink_id)
+
 
 
 
@@ -29,6 +81,7 @@ class CommLink:
     message queuing etc. should take place."""
     def __init__(self, rx_function, local=None, target=None, local_channel=None):
         """Not using type info because circular, but local and target are ChannelParam types."""
+        # TODO: we prob want to keep channel information in here
         self.local = local
         self.target = target
         self.rx_function = rx_function
@@ -42,6 +95,12 @@ class CommLink:
         # TODO: ensure a medium is specified?
 
     def establish_mechanisms(self):
+        
+        # TODO: check for one-directional web request/scrape RX
+        
+        
+        
+        
         tx_params = None
         if self.local.direction == "tx":
             tx_params = self.local
@@ -67,6 +126,7 @@ class CommLink:
         # so this handles activity, not the actual mechanism
 
         if self.local.activity == "scheduled":
+            # TODO: or is this handled inside
             # TODO: we know we need timer stuff.
             pass
 
@@ -90,6 +150,8 @@ class CommMechanism:
 
 class CLIMechanism(CommMechanism):
     # TODO: this needs to be singleton
+
+    # TODO: this needs to be able to handle an endpoint and spawn the command and read/write stdout/stdin
     def __init__(self):
         super().__init__()
 
@@ -142,3 +204,13 @@ class FileMechanism(CommMechanism):
 class WebRequestMechanism(CommMechanism):
     def __init__(self):
         super().__init__()
+
+    def rx(self):
+        pass
+
+    def tx(self):
+        pass
+
+
+class FlaskServerMechanism(CommMechanism):
+    pass
