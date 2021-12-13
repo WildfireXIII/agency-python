@@ -112,12 +112,17 @@ class Channel:
         elif self.target is not None and channel.target is not None:
             resolved_target = self.target.resolve(channel.target)
 
-        # TODO: if local or target is none, don't we want to init one with stuf from common? Unclear if that's desired functionality or not
         # resolve local and target with common if applicable
         if resolved_common is not None and resolved_local is not None:
             resolved_local = resolved_local.resolve(resolved_common)
         if resolved_common is not None and resolved_target is not None:
             resolved_target = resolved_target.resolve(resolved_common)
+
+        # if there is no local or no target, we assume it to be the resolved common (if there is one
+        if resolved_local is None and resolved_common is not None:
+            resolved_local = resolved_common
+        if resolved_target is None and resolved_common is not None:
+            resolved_target = resolved_common
             
         return resolved_local, resolved_target
 

@@ -2,6 +2,9 @@
 
 import logging
 import os
+import queue
+import sys
+from threading import Thread
 from typing import List
 
 #from agency.channel import ChannelParams
@@ -23,14 +26,21 @@ class CommLinkList:
     """A collection of active commlinks. This allows overarching management and global tx/rx to and from 
     all applicable commlinks in an intelligent (singleton-based where necessary) way. THIS is the rEaL function
     that handles scheduling and threading and keepalive etc."""
+
     
     def __init__(self):
         self.commlinks: List[CommLink] = []
 
-        self.cli_in = []
-        self.cli_out = []
+        # TODO: list of timer threads for scheduled commlinks (maybe the targets should actually be a function on the commlink?)
 
-    def add_commlink(self, commlink: CommLink):
+        self.cli_in = []
+        self.cli_out = [] # only applies to those with use_global specified. Just a fast way to index them.
+
+        self.cli_rx_thread = None
+        
+        self.q = queue.Queue() # TODO: unclear if this is the correct place to put this
+
+    def add_commlink(self, commlink):
         self.commlinks.append(commlink)
         commlink_id = len(self.commlinks)
         if type(commlink.rx_mechanism) == CLIMechanism:
@@ -38,18 +48,56 @@ class CommLinkList:
         if type(commlink.tx_mechanism) == CLIMechanism:
             self.cli_out.append(commlink_id)
 
-    def establish_mechanism():
-        pass
+        self.establish_mechanisms() # TODO: this is almost certainly not where this belongs
+
+    def establish_mechanisms(self):
+        logging.info("Establishing commlinklist mechanisms")
+        # TODO: as soon as we determine that a global cli mechanism is requested, establish one.
+        if len(self.cli_in) > 0:
+            logging.debug("We have an input CLI!")
+            self.cli_rx_thread = Thread(target=self.cli_rx, args=[self.q])
+
 
     def tx(self, msg, params):
         ids, links = self.filter_tx_commlinks(params)
 
+        print(self.cli_out)
+        print(ids)
+
         for index in ids:
             if index in self.cli_out:
-                # TODO: 
-                pass
+                # TODO: we only want to transmit out on cli once
+                print(msg) # doooo we need something fancier than this? I don't think we can use an actual climechanism because input is all wonky if threaded.
                 
-    
+    def begin_monitor_rx(self):
+        """Commences all listening threads!"""
+        logging.info("Comm link list beginning to monitor input commlinks")
+
+        # TODO: this doesn't necessarily work if one of the input channels allows the creation/setup of additional channels/commlinks...
+        #   maybe instead of this funciton also handling closing of threads, we have a separate "loop" function while alive that can handle
+        #   a queue of new things or something.
+
+        # start listening to cli stdin
+        if self.cli_rx_thread is not None:
+            self.cli_rx_thread.start()
+
+
+        # spawn anything else necessary
+
+        
+        # rejoin cli if called
+        if self.cli_rx_thread is not None:
+            self.cli_rx_thread.join()
+            cli_input = self.q.get()
+            # NOTE: alternatively instead of joining the thread we can just use self.q.get as a blocker
+
+            # TODO: do we restart the thread? This should be based on keep-alive
+            # TODO: keep alive should be based on a cli flag rather than having to explicitly specify this in agent or user channels
+
+            # TODO: determine which threads were listening for CLI RX and distribute to approrpirate rx channels
+            for commlink_id in self.cli_in:
+                # TODO: rx_function really needs to take information about commlink/channel too.
+                self.commlinks[commlink_id].rx_function(cli_input.join("\n")) 
     
 
     def filter_tx_commlinks(self, params):
@@ -70,6 +118,26 @@ class CommLinkList:
         #if commlink.local.medium == "cli":
             #self.cli_listen.append(commlink_id)
 
+
+    def cli_rx(self, q):
+        # TODO: this probably needs to go into the mechanisms, but since (I think) only one thread can read from stdin at a time, 
+        #   we have to have a single global rx
+        # NOTE: this only gets "used"
+
+        logging.debug("CLI_RX commlinklist thread is listening on stdin...")
+
+        lines = []
+        
+        line = sys.stdin.readline() 
+        while line != "\n":
+            lines.append(line)
+            line = sys.stdin.readline() 
+        print(lines) # debug
+        q.put(lines)
+        #return lines
+            
+
+        # we join on a double new line TODO: need to determine if this is actually the best way or not
 
 
 
@@ -108,6 +176,9 @@ class CommLink:
         if tx_params is not None and tx_params.medium == "cli":
             self.tx_mechanism = CLIMechanism()
 
+        if self.local.direction is None and self.local.medium == "cli":
+            pass
+            #self.rx_mechanism = CLIMechanism()
             
 
     def tx(self, msg):
@@ -122,6 +193,9 @@ class CommLink:
         self.tx_mechanism.tx(msg)
 
     def rx(self):
+        # TODO: (21-12-12) are we actually still doing this here? Or is this supersceded by commlinklist somehow? I think only supersceded if singletone mechanism?
+
+        
         # this is where, based on local medium and activity, we either spin up a thread to spin wait or not?
         # so this handles activity, not the actual mechanism
 
@@ -149,10 +223,12 @@ class CommMechanism:
 
 
 class CLIMechanism(CommMechanism):
-    # TODO: this needs to be singleton
 
     # TODO: this needs to be able to handle an endpoint and spawn the command and read/write stdout/stdin
-    def __init__(self):
+    def __init__(self, use_global: bool = True):
+        """If use_global is set to true, use the commlinklist's global singleton cli mechanism. This prevents a message
+        from being printed to stdout multiple times if going through multiple commlinks. (However that may be desired 
+        sometimes."""
         super().__init__()
 
     def tx(self, content):

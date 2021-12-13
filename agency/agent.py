@@ -55,10 +55,10 @@ def set_default_channels(agent):
     
     # define a **connection** that is CLI to CLI (for testing purposes)
     test_tx = Channel(common=ChannelParams(stream="test-echo", medium="cli"), name="AUTO-test-echo")
-    agent.define_connection(test_tx)
+    agent.define_channel(test_tx)
     def echo_response(msg):
         logging.info("We have receieved a test-echo message '%s'" % msg)
-        tx(msg, stream='test-echo', medium='cli')
+        tx(f"ECHO: {msg}", stream='test-echo', medium='cli')
     agent.connect(Channel(common=ChannelParams(stream="test-echo", medium="cli")), echo_response)
     
 
@@ -71,7 +71,7 @@ AGENT = None
 class Agent:
     def __init__(self):
         self.channel_list: ChannelList = ChannelList()
-        self.commlinks: List[CommLink] = CommLinkList() # TODO: might want to make this a class like channellist too for easy querying and storage.
+        self.commlinks: CommLinkList = CommLinkList() # TODO: might want to make this a class like channellist too for easy querying and storage.
         self.default_rx = None
 
         self.msg_history = []
@@ -98,7 +98,9 @@ class Agent:
         if rx_function is None:
             rx_function = self.default_rx
         new_commlinks = self.channel_list.connect(channel, rx_function)
-        self.commlinks.extend(new_commlinks)
+        for commlink in new_commlinks:
+            self.commlinks.add_commlink(commlink)
+        #self.commlinks.extend(new_commlinks)
 
     def tx(self, msg, params: ChannelParams):
         #applicable = self.resolve_applicable_commlinks(params)
@@ -109,6 +111,10 @@ class Agent:
         
         #for commlink in applicable:
             #commlink.tx(msg)
+
+    def rx(self):
+        logging.info("Agent now listening...")
+        self.commlinks.begin_monitor_rx()
 
     # def resolve_applicable_commlinks(self, params: ChannelParams) -> List[CommLink]:
     #     logging.debug("Searching for applicable commlinks...")
@@ -147,4 +153,5 @@ def rx(action_f):
     set_default_channels(AGENT) 
     #tx("THIS IS A TEST", medium="cli")
     tx("THIS IS A TEST", medium="cli", stream="agent-info")
+    AGENT.rx()
 
