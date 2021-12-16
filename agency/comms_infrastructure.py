@@ -41,6 +41,7 @@ class CommLinkList:
         self.q = queue.Queue() # TODO: unclear if this is the correct place to put this
 
     def add_commlink(self, commlink):
+        logging.debug("Adding commlink %s" % commlink)
         self.commlinks.append(commlink)
         commlink_id = len(self.commlinks)
         if type(commlink.rx_mechanism) == CLIMechanism:
@@ -72,6 +73,7 @@ class CommLinkList:
     def begin_monitor_rx(self):
         """Commences all listening threads!"""
         logging.info("Comm link list beginning to monitor input commlinks")
+        print(self.cli_in)
 
         # TODO: this doesn't necessarily work if one of the input channels allows the creation/setup of additional channels/commlinks...
         #   maybe instead of this funciton also handling closing of threads, we have a separate "loop" function while alive that can handle
@@ -79,6 +81,7 @@ class CommLinkList:
 
         # start listening to cli stdin
         if self.cli_rx_thread is not None:
+            logging.debug("About to start cli rx thread")
             self.cli_rx_thread.start()
 
 
@@ -94,14 +97,17 @@ class CommLinkList:
             # TODO: do we restart the thread? This should be based on keep-alive
             # TODO: keep alive should be based on a cli flag rather than having to explicitly specify this in agent or user channels
 
-            # TODO: determine which threads were listening for CLI RX and distribute to approrpirate rx channels
+            # determine which threads were listening for CLI RX and distribute to approrpirate rx channels
             for commlink_id in self.cli_in:
-                # TODO: rx_function really needs to take information about commlink/channel too.
-                self.commlinks[commlink_id].rx_function(cli_input.join("\n")) 
+                logging.debug("Running RX function for %s" % commlink_id)
+                logging.debug("RX function is for %s" % self.commlinks[commlink_id])
+                # STRT: rx_function really needs to take information about commlink/channel too.
+                self.commlinks[commlink_id].rx_function("".join(cli_input), self.commlinks[commlink_id].local_channel, None) 
     
 
     def filter_tx_commlinks(self, params):
         """For a given set of channelparams, find all applicable commmlinks that can be used to transmit the message."""
+        # TODO: (12/15/2021) wait, why does this work with only one set of params and not two again?
         logging.debug("Searching for available tx commlinks...")
         applicable_ids = []
         applicable = []
@@ -120,6 +126,8 @@ class CommLinkList:
 
 
     def cli_rx(self, q):
+        # TODO: (12/15/2021) rename q....
+        # TODO: (12/15/2021) is this not being called yet?
         # TODO: this probably needs to go into the mechanisms, but since (I think) only one thread can read from stdin at a time, 
         #   we have to have a single global rx
         # NOTE: this only gets "used"
@@ -132,7 +140,7 @@ class CommLinkList:
         while line != "\n":
             lines.append(line)
             line = sys.stdin.readline() 
-        print(lines) # debug
+        print("received lines", lines) # debug
         q.put(lines)
         #return lines
             
@@ -153,7 +161,7 @@ class CommLink:
         self.local = local
         self.target = target
         self.rx_function = rx_function
-        self.local_channel = local_channel
+        self.local_channel = local_channel # TODO: (12/15/2021) why is this "local" channel, the channel has both local and target, two channels would never make sense
 
         self.rx_mechanism: CommMechanism = None
         self.tx_mechanism: CommMechanism = None
@@ -162,23 +170,32 @@ class CommLink:
 
         # TODO: ensure a medium is specified?
 
+    def __repr__(self):
+        rep = "<"
+        if self.local_channel is not None and self.local_channel.name is not None:
+            rep += self.local_channel.name
+        else:
+            rep += "unnamed"
+
+        if self.local.stream is not None:
+            rep += f" '{self.local.stream}'"
+        rep += f" rx:{self.rx_mechanism.__class__} tx:{self.tx_mechanism.__class__}>"
+        return rep
+
     def establish_mechanisms(self):
         
         # TODO: check for one-directional web request/scrape RX
         
         
-        
-        
-        tx_params = None
-        if self.local.direction == "tx":
-            tx_params = self.local
-
-        if tx_params is not None and tx_params.medium == "cli":
-            self.tx_mechanism = CLIMechanism()
-
-        if self.local.direction is None and self.local.medium == "cli":
-            pass
-            #self.rx_mechanism = CLIMechanism()
+        # determine primarily by medium
+        if self.local.medium == "cli":
+            if self.local.direction == "tx":
+                self.tx_mechanism = CLIMechanism()
+            elif self.local.direction == "rx":
+                self.rx_mechanism = CLIMechanism()
+            else:
+                self.tx_mechanism = CLIMechanism()
+                self.rx_mechanism = CLIMechanism()
             
 
     def tx(self, msg):
@@ -193,7 +210,7 @@ class CommLink:
         self.tx_mechanism.tx(msg)
 
     def rx(self):
-        # TODO: (21-12-12) are we actually still doing this here? Or is this supersceded by commlinklist somehow? I think only supersceded if singletone mechanism?
+        # TODO: (12/12/2021) are we actually still doing this here? Or is this supersceded by commlinklist somehow? I think only supersceded if singletone mechanism?
 
         
         # this is where, based on local medium and activity, we either spin up a thread to spin wait or not?

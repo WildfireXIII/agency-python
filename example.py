@@ -27,9 +27,10 @@ def process_feed(feed_str):
 
 # TODO: at some point messages themselves need to probably have meta data, so a message needs a "payload"
 #   which would be the actual rss dump itself.
+#def rx(message, channel, instance_config):
 def rx(message, channel, instance_config):
     print(f"Message received: {message} on channel {channel}")
-    if channel.encoding == "rss":
+    if channel.local.encoding == "rss" and channel.local.stream == "scrape":
         process_feed(message)
 
 

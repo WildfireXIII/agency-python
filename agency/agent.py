@@ -30,6 +30,7 @@ def set_default_channels(agent):
 
 
 
+    # STRT: see notes, but these probably need to define stream in common rather than in local.
     ai_tx = Channel(local=ChannelParams(stream="agent-info", direction="tx"), name="AUTO-agent-info-output")
     m_tx = Channel(local=ChannelParams(stream="metrics", direction="tx", medium="cli"), name="AUTO-metrics-output")
     cl_tx = Channel(local=ChannelParams(stream="channel-list", direction="tx"), name="AUTO-channel-list-output")
@@ -42,7 +43,7 @@ def set_default_channels(agent):
     
     # connect all CLI outputs???? to active commandline
     #all_cli = Channel(common=ChannelParams(medium="cli"))
-    # TODO: assume channel definitions are _not_ reversed when calling connect. Everything is from perspective of active agent.
+    # NOTE: assume channel definitions are _not_ reversed when calling connect. Everything is from perspective of active agent.
     ai_rx = Channel(common=ChannelParams(medium="cli"), local=ChannelParams(stream="agent-info"), target=ChannelParams(direction="rx"), temporary=True)
     # NOTE: the target above should be implicit??
     m_rx = Channel(common=ChannelParams(medium="cli"), local=ChannelParams(stream="metrics"), temporary=True)
@@ -56,7 +57,7 @@ def set_default_channels(agent):
     # define a **connection** that is CLI to CLI (for testing purposes)
     test_tx = Channel(common=ChannelParams(stream="test-echo", medium="cli"), name="AUTO-test-echo")
     agent.define_channel(test_tx)
-    def echo_response(msg):
+    def echo_response(msg, *stuff):
         logging.info("We have receieved a test-echo message '%s'" % msg)
         tx(f"ECHO: {msg}", stream='test-echo', medium='cli')
     agent.connect(Channel(common=ChannelParams(stream="test-echo", medium="cli")), echo_response)
@@ -71,7 +72,7 @@ AGENT = None
 class Agent:
     def __init__(self):
         self.channel_list: ChannelList = ChannelList()
-        self.commlinks: CommLinkList = CommLinkList() # TODO: might want to make this a class like channellist too for easy querying and storage.
+        self.commlinks: CommLinkList = CommLinkList() # DONE: might want to make this a class like channellist too for easy querying and storage.
         self.default_rx = None
 
         self.msg_history = []
@@ -153,5 +154,5 @@ def rx(action_f):
     set_default_channels(AGENT) 
     #tx("THIS IS A TEST", medium="cli")
     tx("THIS IS A TEST", medium="cli", stream="agent-info")
-    AGENT.rx()
+    #AGENT.rx()
 
