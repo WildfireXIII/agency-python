@@ -1,12 +1,13 @@
-STRT: implement cli threaded in and out in commlinklist
-WAIT: take a CLI input and echo it back out
-
 TODO: [A] make actual automatic configuration of comm mechanisms
-
-STRT: [B] determine how to allow multiple channels to RX without interfering
+TODO: Get an actual RSS scrape/figure out scheduling params 
 
 TODO: make commlink keep track of both channel ends where applicable
 TODO: figure out how unidirectional channels are handled programmatically
 
 
 TODO: Allow some mechanism to group commlinks into a "redundancy group" where acks are required and if acks are not received, we waterfall down (rather than always sending on all available at once)
+
+
+DONE: implement cli threaded in and out in commlinklist
+DONE: take a CLI input and echo it back out
+DONE: [B] determine how to allow multiple channels to RX without interfering

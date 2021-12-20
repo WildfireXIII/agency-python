@@ -47,7 +47,9 @@ agency.define_channel(
     )
 )
 agency.define_channel(
-    Channel(local=ChannelParams(direction="rx", stream="scrape", encoding="rss", name="RSS input")),
+    Channel(
+        common=ChannelParams(stream="scrape"), # TODO: (12/19/2021) I don't like how this is necessary....but without this, it gets connected to the test-echo channel too
+        local=ChannelParams(direction="rx", encoding="rss", name="RSS input")),
     #action=rx, # TODO:  
 )
 

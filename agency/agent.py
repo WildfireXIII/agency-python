@@ -156,5 +156,5 @@ def rx(action_f):
     #tx("THIS IS A TEST", medium="cli")
     #tx("THIS IS A TEST", medium="cli", stream="agent-info")
     tx("THIS IS A TEST", medium="cli", stream="test-echo")
-    #AGENT.rx()
+    AGENT.rx()
 

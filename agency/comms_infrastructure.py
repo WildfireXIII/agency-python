@@ -101,7 +101,8 @@ class CommLinkList:
                 logging.debug("Running RX function for %s" % commlink_id)
                 logging.debug("RX function is for %s" % self.commlinks[commlink_id])
                 # STRT: rx_function really needs to take information about commlink/channel too.
-                self.commlinks[commlink_id].rx_function("".join(cli_input), self.commlinks[commlink_id].local_channel, None) 
+                #self.commlinks[commlink_id].rx_function("".join(cli_input), self.commlinks[commlink_id].local_channel, None) 
+                self.commlinks[commlink_id].rx_function(cli_input, self.commlinks[commlink_id].local_channel, None) 
     
 
     def filter_tx_commlinks(self, params):
@@ -138,11 +139,11 @@ class CommLinkList:
         lines = []
         
         line = sys.stdin.readline() 
-        while line != "\n":
-            lines.append(line)
-            line = sys.stdin.readline() 
-        print("received lines", lines) # debug
-        q.put(lines)
+        #while line != "\n":
+            #lines.append(line)
+            #line = sys.stdin.readline() 
+        print("received line", line) # debug
+        q.put(line.strip())
         #return lines
             
 
