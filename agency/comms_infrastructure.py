@@ -42,8 +42,8 @@ class CommLinkList:
 
     def add_commlink(self, commlink):
         logging.debug("Adding commlink %s" % commlink)
-        self.commlinks.append(commlink)
         commlink_id = len(self.commlinks)
+        self.commlinks.append(commlink)
         if type(commlink.rx_mechanism) == CLIMechanism:
             self.cli_in.append(commlink_id)
         if type(commlink.tx_mechanism) == CLIMechanism:
@@ -53,7 +53,6 @@ class CommLinkList:
 
     def establish_mechanisms(self):
         logging.info("Establishing commlinklist mechanisms")
-        # TODO: as soon as we determine that a global cli mechanism is requested, establish one.
         if len(self.cli_in) > 0:
             logging.debug("We have an input CLI!")
             self.cli_rx_thread = Thread(target=self.cli_rx, args=[self.q])
@@ -62,8 +61,8 @@ class CommLinkList:
     def tx(self, msg, params):
         ids, links = self.filter_tx_commlinks(params)
 
-        print(self.cli_out)
-        print(ids)
+        print("cli_out", self.cli_out)
+        print("ids", ids)
 
         for index in ids:
             if index in self.cli_out:
@@ -109,9 +108,12 @@ class CommLinkList:
         """For a given set of channelparams, find all applicable commmlinks that can be used to transmit the message."""
         # TODO: (12/15/2021) wait, why does this work with only one set of params and not two again?
         logging.debug("Searching for available tx commlinks...")
+        print("params to fit", params)
         applicable_ids = []
         applicable = []
         for i, commlink in enumerate(self.commlinks):
+            print(commlink.local)
+            print(commlink.local.fits(params))
             if commlink.local.direction != "rx" and commlink.local.fits(params):
                 applicable_ids.append(i)
                 applicable.append(commlink)
@@ -127,7 +129,6 @@ class CommLinkList:
 
     def cli_rx(self, q):
         # TODO: (12/15/2021) rename q....
-        # TODO: (12/15/2021) is this not being called yet?
         # TODO: this probably needs to go into the mechanisms, but since (I think) only one thread can read from stdin at a time, 
         #   we have to have a single global rx
         # NOTE: this only gets "used"

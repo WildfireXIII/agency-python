@@ -60,7 +60,7 @@ class Channel:
         target: ChannelParams = None,
         temporary=False,
         name: str = None,
-        # TODO: rx function as applicable 
+        # TODO: rx function as applicable
         # TODO: (12/15/2021) does rx function belong to commlink or to channel? I feel like it makes more sense in channel?
     ):
         self.common = common

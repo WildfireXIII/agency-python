@@ -31,27 +31,28 @@ def set_default_channels(agent):
 
 
     # STRT: see notes, but these probably need to define stream in common rather than in local.
-    ai_tx = Channel(local=ChannelParams(stream="agent-info", direction="tx"), name="AUTO-agent-info-output")
-    m_tx = Channel(local=ChannelParams(stream="metrics", direction="tx", medium="cli"), name="AUTO-metrics-output")
-    cl_tx = Channel(local=ChannelParams(stream="channel-list", direction="tx"), name="AUTO-channel-list-output")
+    # TODO: (12/19/2021) commenting these out for now to help narrow down what the problem is, add back in later
+    # ai_tx = Channel(local=ChannelParams(stream="agent-info", direction="tx"), name="AUTO-agent-info-output")
+    # m_tx = Channel(local=ChannelParams(stream="metrics", direction="tx", medium="cli"), name="AUTO-metrics-output")
+    # cl_tx = Channel(local=ChannelParams(stream="channel-list", direction="tx"), name="AUTO-channel-list-output")
 
 
-    agent.define_channel(ai_tx)
-    agent.define_channel(m_tx)
-    agent.define_channel(cl_tx)
+    #agent.define_channel(ai_tx)
+    #agent.define_channel(m_tx)
+    #agent.define_channel(cl_tx)
     
     
     # connect all CLI outputs???? to active commandline
     #all_cli = Channel(common=ChannelParams(medium="cli"))
     # NOTE: assume channel definitions are _not_ reversed when calling connect. Everything is from perspective of active agent.
-    ai_rx = Channel(common=ChannelParams(medium="cli"), local=ChannelParams(stream="agent-info"), target=ChannelParams(direction="rx"), temporary=True)
+    #ai_rx = Channel(common=ChannelParams(medium="cli"), local=ChannelParams(stream="agent-info"), target=ChannelParams(direction="rx"), temporary=True)
     # NOTE: the target above should be implicit??
-    m_rx = Channel(common=ChannelParams(medium="cli"), local=ChannelParams(stream="metrics"), temporary=True)
-    all_rx = Channel(common=ChannelParams(medium="cli"), temporary=True) # NOTE: this is probably an issue because....I don't know
+    #m_rx = Channel(common=ChannelParams(medium="cli"), local=ChannelParams(stream="metrics"), temporary=True)
+    #all_rx = Channel(common=ChannelParams(medium="cli"), temporary=True) # NOTE: this is probably an issue because....I don't know
     
-    agent.connect(ai_rx)
-    agent.connect(m_rx)
-    agent.connect(all_rx)
+    #agent.connect(ai_rx)
+    #agent.connect(m_rx)
+    #agent.connect(all_rx)
 
     
     # define a **connection** that is CLI to CLI (for testing purposes)
@@ -153,6 +154,7 @@ def rx(action_f):
     AGENT.default_rx = action_f
     set_default_channels(AGENT) 
     #tx("THIS IS A TEST", medium="cli")
-    tx("THIS IS A TEST", medium="cli", stream="agent-info")
+    #tx("THIS IS A TEST", medium="cli", stream="agent-info")
+    tx("THIS IS A TEST", medium="cli", stream="test-echo")
     #AGENT.rx()
 
