@@ -3,8 +3,10 @@
 import logging
 import os
 import queue
+import requests
 import sys
 from threading import Thread
+import time
 from typing import List
 
 #from agency.channel import ChannelParams
@@ -145,9 +147,21 @@ class CommLinkList:
         print("received line", line) # debug
         q.put(line.strip())
         #return lines
-            
 
         # we join on a double new line TODO: need to determine if this is actually the best way or not
+
+
+    def timed_webrequest_rx(self, endpoint, sleep_time, q):
+        # TODO: (12/20/2021) rename q
+        # TODO: (12/20/2021) This, again, needs to go into the mechanisms, leaving here for now for simplicity
+
+
+        time.sleep(sleep_time)
+        r = requests.get(endpoint)
+        q.put(r.text)
+
+
+        
 
 
 

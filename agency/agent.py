@@ -62,6 +62,11 @@ def set_default_channels(agent):
         logging.info("We have receieved a test-echo message '%s'" % msg)
         tx(f"ECHO: {msg}", stream='test-echo', medium='cli')
     agent.connect(Channel(common=ChannelParams(stream="test-echo", medium="cli")), echo_response)
+
+
+    # testing rss scrape channel
+    # feed = feedparser.parse("https://matrix.org/blog/feed")
+    agent.connect(Channel(common=ChannelParams(stream='scrape', medium='webrequest', encoding='rss', endpoint="https://matrix.org/blog/feed", schedule='10s')))
     
 
 # class: instance? (this could handle memory/config stuff)
@@ -73,7 +78,7 @@ AGENT = None
 class Agent:
     def __init__(self):
         self.channel_list: ChannelList = ChannelList()
-        self.commlinks: CommLinkList = CommLinkList() # DONE: might want to make this a class like channellist too for easy querying and storage.
+        self.commlinks: CommLinkList = CommLinkList()
         self.default_rx = None
 
         self.msg_history = []
