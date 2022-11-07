@@ -39,6 +39,8 @@ class CommLinkList:
         self.cli_out = [] # only applies to those with use_global specified. Just a fast way to index them.
 
         self.cli_rx_thread = None
+
+        self.timer_thread = None # STRT: (12/20/2021) continue working on this for the timed_webrequest_rx
         
         self.q = queue.Queue() # TODO: unclear if this is the correct place to put this
 
@@ -102,7 +104,6 @@ class CommLinkList:
             for commlink_id in self.cli_in:
                 logging.debug("Running RX function for %s" % commlink_id)
                 logging.debug("RX function is for %s" % self.commlinks[commlink_id])
-                # STRT: rx_function really needs to take information about commlink/channel too.
                 #self.commlinks[commlink_id].rx_function("".join(cli_input), self.commlinks[commlink_id].local_channel, None) 
                 self.commlinks[commlink_id].rx_function(cli_input, self.commlinks[commlink_id].local_channel, None) 
     
@@ -200,8 +201,6 @@ class CommLink:
 
     def establish_mechanisms(self):
         
-        # TODO: check for one-directional web request/scrape RX
-        
         
         # determine primarily by medium
         if self.local.medium == "cli":
@@ -212,6 +211,11 @@ class CommLink:
             else:
                 self.tx_mechanism = CLIMechanism()
                 self.rx_mechanism = CLIMechanism()
+
+        # STRT: check for one-directional web request/scrape RX
+        if self.local.medium == "webrequest":
+            if self.local.direction == "rx":
+                self.rx_mechanism = WebRequestMechanism()
             
 
     def tx(self, msg):
